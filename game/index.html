@@ -18,9 +18,13 @@
   #hud-speed { top: 14px; left: 14px; }
   #hud-alt { top: 14px; left: 150px; }
   #hud-heading { top: 14px; left: 286px; }
+  #hud-eng { top: 84px; left: 14px; }
+  #hud-flaps { top: 84px; left: 150px; }
+  #hud-spoilers { top: 84px; left: 286px; }
+  #hud-minimap { position: absolute; bottom: 12px; left: 14px; border: 1px solid rgba(255, 220, 150, .45); border-radius: 10px; background: rgba(20, 16, 10, .55); }
   #hud-score-box { top: 14px; right: 14px; text-align: right; }
   #hud-lives { top: 96px; right: 14px; font-size: 20px; letter-spacing: .2em; }
-  #hud-rings-box { top: 96px; left: 14px; }
+  #hud-rings-box { top: 156px; left: 14px; }
   #hud-msg { position: absolute; top: 38%; left: 50%; transform: translateX(-50%); font-size: 30px; font-weight: 800; color: #7dff9a; }
   #hud-cross { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 22px; opacity: .65; }
   #hud-hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: 12px; opacity: .85; background: rgba(20,16,10,.5); padding: 5px 10px; border-radius: 8px; }
@@ -35,12 +39,16 @@
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Canyon Chase: fly a stunt plane through rings in a red-rock desert canyon"></canvas>
+<canvas id="game" aria-label="Canyon Chase: fly a twin-engine jet through rings in a red-rock desert canyon"></canvas>
 <p id="status" role="status" aria-live="polite"></p>
 <div id="hud" class="hidden">
   <div class="hud-box" id="hud-speed"><div class="label">SPEED</div><div><span class="value" id="hud-speed-v">0</span> <span class="unit">KT</span></div></div>
   <div class="hud-box" id="hud-alt"><div class="label">ALTITUDE</div><div><span class="value" id="hud-alt-v">0</span> <span class="unit">FT</span></div></div>
   <div class="hud-box" id="hud-heading"><div class="label">HEADING</div><div><span class="value" id="hud-heading-v">000</span><span class="unit">°</span></div></div>
+  <div class="hud-box" id="hud-eng"><div class="label">ENG N1</div><div><span class="value" id="hud-eng-v">0</span> <span class="unit">%</span></div></div>
+  <div class="hud-box" id="hud-flaps"><div class="label">FLAPS</div><div><span class="value" id="hud-flaps-v">0</span> <span class="unit">/2</span></div></div>
+  <div class="hud-box" id="hud-spoilers"><div class="label">SPOILERS</div><div><span class="value" id="hud-spoilers-v">0</span> <span class="unit">/2</span></div></div>
+  <canvas id="hud-minimap" width="150" height="90" aria-label="Minimap: canyon path and next ring"></canvas>
   <div class="hud-box" id="hud-score-box"><div class="label">SCORE</div><div class="value" id="hud-score-v">0</div><div class="label">DIST <span id="hud-dist-v">0</span> M</div></div>
   <div class="hud-box" id="hud-rings-box"><div class="label">RINGS <span class="value" id="hud-rings-v">0</span> &nbsp; STREAK <span id="hud-streak-v"></span></div></div>
   <div id="hud-lives">✈✈✈</div>

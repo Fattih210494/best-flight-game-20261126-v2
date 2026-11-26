@@ -22,6 +22,9 @@ const hud = {
   speed: document.getElementById('hud-speed-v'),
   alt: document.getElementById('hud-alt-v'),
   heading: document.getElementById('hud-heading-v'),
+  eng: document.getElementById('hud-eng-v'),
+  flaps: document.getElementById('hud-flaps-v'),
+  spoilers: document.getElementById('hud-spoilers-v'),
   dist: document.getElementById('hud-dist-v'),
   score: document.getElementById('hud-score-v'),
   rings: document.getElementById('hud-rings-v'),
@@ -29,6 +32,8 @@ const hud = {
   lives: document.getElementById('hud-lives'),
   msg: document.getElementById('hud-msg'),
 };
+const minimap = document.getElementById('hud-minimap');
+const mm = minimap.getContext('2d');
 const titleEl = document.getElementById('screen-title');
 const overEl = document.getElementById('screen-over');
 const overScore = document.getElementById('over-score');
@@ -49,7 +54,7 @@ const audio = createAudio();
 const state = {
   world, score: 0, best: 0, lives: LIVES, rings: 0, streak: 0,
   distance: 0, speed: BASE_SPEED, vx: 0, vy: 0, invuln: 0, shake: 0,
-  lastRing: { x: centreX(0, seed), y: 18, z: 0 },
+  lastRing: { x: centreX(0, seed), y: 18, z: 0 }, lastInput: { brake: false, boost: false },
 };
 const plane = aircraft.group;
 
@@ -91,6 +96,7 @@ function crash(kind) {
 }
 
 function step(dt, input) {
+  state.lastInput = input;
   const target = Math.max(BASE_SPEED - 6, Math.min(MAX_SPEED,
     BASE_SPEED + state.rings * SPEED_PER_RING + (input.boost ? 7 : 0) - (input.brake ? 9 : 0)));
   state.speed += (target - state.speed) * Math.min(1, dt * 1.5);
@@ -133,6 +139,32 @@ function step(dt, input) {
 
 const game = { state, plane, reset, step };
 
+function drawMinimap() {
+  const W = 150, H = 90;
+  mm.clearRect(0, 0, W, H);
+  const zNear = plane.position.z + 120, zFar = plane.position.z - 260;
+  const toX = (x) => 75 + (x - plane.position.x) * 1.1;
+  const toY = (z) => ((zNear - z) / (zNear - zFar)) * H;
+  // Canyon path (centreline) ahead.
+  mm.strokeStyle = '#ffd98a'; mm.lineWidth = 2; mm.beginPath();
+  for (let z = zNear; z >= zFar; z -= 10) {
+    const x = toX(centreX(z, seed)), y = toY(z);
+    if (z === zNear) mm.moveTo(x, y); else mm.lineTo(x, y);
+  }
+  mm.stroke();
+  // Next ring marker.
+  const nr = world.nextRing();
+  if (nr) {
+    mm.fillStyle = '#19e3ff';
+    mm.beginPath(); mm.arc(toX(nr.x), toY(nr.z), 4, 0, Math.PI * 2); mm.fill();
+  }
+  // Plane marker.
+  mm.fillStyle = '#ffffff';
+  mm.beginPath(); mm.arc(75, toY(plane.position.z), 3.5, 0, Math.PI * 2); mm.fill();
+  mm.fillStyle = '#ffd98a'; mm.font = '9px system-ui, sans-serif';
+  mm.fillText('MAP', 4, 10);
+}
+
 function updateHud() {
   const knots = Math.round(state.speed * 3.8);
   const altFt = Math.round(Math.max(0, plane.position.y - 0.4) * 10);
@@ -140,6 +172,10 @@ function updateHud() {
   hud.speed.textContent = String(knots);
   hud.alt.textContent = String(altFt);
   hud.heading.textContent = String(heading).padStart(3, '0');
+  hud.eng.textContent = String(Math.round(55 + (state.speed / MAX_SPEED) * 45));
+  hud.flaps.textContent = state.lastInput.brake ? '2' : '0';
+  hud.spoilers.textContent = state.lastInput.brake ? '2' : '0';
+  drawMinimap();
   hud.dist.textContent = Math.round(state.distance * 3).toLocaleString('en-US');
   hud.score.textContent = Math.round(state.score).toLocaleString('en-US');
   hud.rings.textContent = String(state.rings);
@@ -153,11 +189,11 @@ function render(screen) {
   const shakeX = state.shake > 0 ? (Math.random() - 0.5) * state.shake * 2 : 0;
   const shakeY = state.shake > 0 ? (Math.random() - 0.5) * state.shake * 2 : 0;
   if (screen === 'title') {
-    camera.position.set(px * 0.6 + shakeX, py + 5.5 + shakeY, pz + 16);
+    camera.position.set(px * 0.6 + shakeX, py + 6 + shakeY, pz + 20);
     camera.lookAt(px, py - 1, pz - 30);
   } else {
-    camera.position.set(px * 0.72 + shakeX, py + 3.0 + shakeY, pz + 8.5);
-    camera.lookAt(px, py - 0.8, pz - 25);
+    camera.position.set(px * 0.72 + shakeX, py + 3.5 + shakeY, pz + 11);
+    camera.lookAt(px, py - 0.5, pz - 30);
   }
   updateHud();
   renderer.render(world.scene, camera);

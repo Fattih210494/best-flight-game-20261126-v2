@@ -29,7 +29,7 @@ export function centreX(z, seed) {
   return 14 * Math.sin(z * 0.004 + seed * 0.7) + 8 * Math.sin(z * 0.011 + seed * 1.3);
 }
 export function halfWidth(z, seed) {
-  return 30 + 7 * Math.sin(z * 0.006 + seed * 2.1) + 4 * Math.sin(z * 0.017 + seed);
+  return 24 + 6 * Math.sin(z * 0.006 + seed * 2.1) + 3 * Math.sin(z * 0.017 + seed);
 }
 
 function buildWallGeometry(rng, zStart, zEnd, side, seed) {
@@ -69,8 +69,8 @@ function buildWallGeometry(rng, zStart, zEnd, side, seed) {
 
 export function createWorld(seed) {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x9fc3dd);
-  scene.fog = new THREE.Fog(0xe6cfa8, 140, 520);
+  scene.background = new THREE.Color(0x7fb2e0);
+  scene.fog = new THREE.Fog(0xd8e8f2, 200, 650);
 
   const hemi = new THREE.HemisphereLight(0xffe9c4, 0x8a5a3a, 0.55);
   scene.add(hemi);
@@ -79,7 +79,7 @@ export function createWorld(seed) {
   scene.add(sun);
 
   const wallMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0, flatShading: true });
-  const riverMat = new THREE.MeshStandardMaterial({ color: 0x35b8b0, roughness: 0.15, metalness: 0.4 });
+  const riverMat = new THREE.MeshStandardMaterial({ color: 0x1e8a80, roughness: 0.15, metalness: 0.4 });
   const mesaMat = new THREE.MeshStandardMaterial({ color: 0x9c5a30, roughness: 1, flatShading: true });
   const pillarMat = new THREE.MeshStandardMaterial({ color: 0x9c4a26, roughness: 0.95, flatShading: true });
   const ringMat = new THREE.MeshStandardMaterial({ color: 0x19e3ff, emissive: 0x0aa8c0, emissiveIntensity: 1.4, roughness: 0.3, metalness: 0.2 });
@@ -99,11 +99,23 @@ export function createWorld(seed) {
       const mesh = new THREE.Mesh(buildWallGeometry(rng, zStart, zEnd, side, seed), wallMat);
       group.add(mesh);
     }
+    // Canyon floor: sandy strips following the winding centreline, so the
+    // ground fills the frame instead of void (the river runs on top of it).
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0xc98f4e, roughness: 1, flatShading: true });
+    const fsegLen = CHUNK_LENGTH / 8;
+    for (let s = 0; s < 8; s += 1) {
+      const sz = zStart - s * fsegLen - fsegLen / 2;
+      const fw = (halfWidth(sz, seed) + 30) * 2;
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fsegLen + 2, 1, 1), floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(centreX(sz, seed), 0.1, sz);
+      group.add(floor);
+    }
     // River: short segments that follow the winding centreline.
     const segLen = CHUNK_LENGTH / 8;
     for (let s = 0; s < 8; s += 1) {
       const sz = zStart - s * segLen - segLen / 2;
-      const seg = new THREE.Mesh(new THREE.PlaneGeometry(17, segLen + 2, 1, 1), riverMat);
+      const seg = new THREE.Mesh(new THREE.PlaneGeometry(10, segLen + 2, 1, 1), riverMat);
       seg.rotation.x = -Math.PI / 2;
       seg.position.set(centreX(sz, seed), 0.4, sz);
       group.add(seg);
@@ -138,16 +150,44 @@ export function createWorld(seed) {
       pillars.push({ x: px, y: h, z, r, mesh: pillar, nearMissed: false });
       state.pillars.push({ x: px, y: h, z, r, mesh: pillar, nearMissed: false });
     }
-    // Distant mesas: low slabs whose tops just peek above the rim (their
-    // bases stay hidden behind the canyon walls, so they read as far buttes).
-    for (let m = 0; m < 2; m += 1) {
-      const mz = zStart - range(rng, 20, CHUNK_LENGTH - 20);
+    // (No distant mesas: they read as floating slabs from the chase camera.)
+    // Boulders + shrubs along the river banks (below the flight floor, clear
+    // of the flight path) for a richer canyon floor.
+    const boulderGeo = new THREE.DodecahedronGeometry(1, 0);
+    const boulderMat = new THREE.MeshStandardMaterial({ color: 0x8a6f52, roughness: 1, flatShading: true });
+    const shrubGeo = new THREE.ConeGeometry(0.9, 1.6, 6);
+    const shrubMat = new THREE.MeshStandardMaterial({ color: 0x3f6b2f, roughness: 1, flatShading: true });
+    for (let b = 0; b < 10; b += 1) {
+      const bz = zStart - range(rng, 10, CHUNK_LENGTH - 10);
       const side = rng() < 0.5 ? -1 : 1;
-      const mw = range(rng, 60, 120);
-      const mh = range(rng, 10, 20);
-      const mesa = new THREE.Mesh(new THREE.BoxGeometry(mw, mh, range(rng, 40, 70)), mesaMat);
-      mesa.position.set(centreX(mz, seed) + side * range(rng, 110, 180), 44 + mh / 2, mz);
-      group.add(mesa);
+      const rock = new THREE.Mesh(boulderGeo, boulderMat);
+      const rs = range(rng, 0.8, 2.2);
+      rock.scale.setScalar(rs);
+      rock.position.set(centreX(bz, seed) + side * range(rng, 10, 26), rs * 0.5, bz);
+      rock.rotation.y = range(rng, 0, Math.PI);
+      group.add(rock);
+    }
+    for (let s = 0; s < 14; s += 1) {
+      const sz = zStart - range(rng, 10, CHUNK_LENGTH - 10);
+      const side = rng() < 0.5 ? -1 : 1;
+      const shrub = new THREE.Mesh(shrubGeo, shrubMat);
+      shrub.scale.setScalar(range(rng, 0.8, 1.8));
+      shrub.position.set(centreX(sz, seed) + side * range(rng, 10, 26), 0.8, sz);
+      group.add(shrub);
+    }
+    // Clouds: soft white puffs high above the rim so the sky is not empty.
+    const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+    for (let c = 0; c < 3; c += 1) {
+      const cz = zStart - range(rng, 20, CHUNK_LENGTH - 20);
+      const cloud = new THREE.Group();
+      for (let p = 0; p < 3; p += 1) {
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(range(rng, 6, 11), 8, 6), cloudMat);
+        puff.scale.y = 0.35;
+        puff.position.set(range(rng, -8, 8), range(rng, -1, 1), range(rng, -4, 4));
+        cloud.add(puff);
+      }
+      cloud.position.set(centreX(cz, seed) + (rng() < 0.5 ? -1 : 1) * range(rng, 60, 140), range(rng, 70, 110), cz);
+      group.add(cloud);
     }
     // One arch per chunk: two posts + lintel, fly under it.
     const az = zStart - range(rng, 60, CHUNK_LENGTH - 40);
@@ -229,7 +269,7 @@ export function createWorld(seed) {
         }
         if (Math.abs(z - p.z) < 3.5) {
           const dx = plane.position.x - p.x;
-          if (Math.abs(dx) < p.r + 2 && plane.position.y < p.y) return 'pillar';
+          if (Math.abs(dx) < p.r + 3 && plane.position.y < p.y) return 'pillar';
           if (!p.nearMissed && Math.abs(dx) < p.r + 6 && plane.position.y < p.y + 4) {
             p.nearMissed = true;
             return 'near';

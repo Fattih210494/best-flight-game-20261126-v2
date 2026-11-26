@@ -40,7 +40,9 @@ export function stageShot(name, game) {
   for (let i = 0; i < seconds / STEP; i += 1) {
     let input;
     if (name === 'start') input = { steer: 0, pitch: 0, boost: false, brake: false };
-    else if (name === 'end') input = autopilot(game.state, game.plane, false);
+    // 'end' stages a game over: fly hard into the wall on purpose, three
+    // crashes in a row (the ring-chasing autopilot is too good to crash).
+    else if (name === 'end') input = { steer: 1, pitch: 0, boost: false, brake: false };
     else input = autopilot(game.state, game.plane, true);
     const ev = game.step(STEP, input);
     if (name === 'start') { screen = 'title'; continue; }
